@@ -108,27 +108,41 @@ Mục tiêu: `displayctl off <id> --ddc` đưa màn hình ngoài vào standby nh
 
 ## Phase 4 — Menu bar app (2–3 ngày)
 
-Mục tiêu: điều khiển mọi thứ bằng chuột từ thanh menu.
+Mục tiêu: điều khiển mọi thứ bằng chuột từ thanh menu — bấm icon trên menu bar là hiện dialog danh sách màn hình với switch bật/tắt.
 
-- [ ] Tạo target `App` (Xcode project trong repo, nhúng `DisplayCore`), `LSUIElement = YES`
-- [ ] `BetterDisplayApp.swift` — `MenuBarExtra` với icon SF Symbol (`display`)
-- [ ] `AppState.swift` — subscribe `DisplayManager` stream, `@Published var displays`
-- [ ] `MenuView.swift`:
-  - [ ] Mỗi màn hình 1 hàng: tên, độ phân giải, `Toggle` bật/tắt
-  - [ ] Toggle bị disable kèm tooltip khi là màn hình cuối (SafetyGuard)
-  - [ ] Menu phụ mỗi màn hình: chọn strategy (Disconnect / DDC / Gamma)
-  - [ ] Nút "Bật tất cả" (restore) + "Quit"
-- [ ] UI tự cập nhật khi cắm/rút cáp (không cần mở lại menu)
-- [ ] Xử lý app thoát khi đang dùng GammaStrategy: bật lại gamma trước khi quit
-- [ ] Ad-hoc codesign (`codesign -s -`), build Release, chép vào `/Applications`
+### Khung app
+- [x] Icon ứng dụng: `Resources/AppIcon.icns` (đủ 10 kích thước 16→1024, vẽ lại vector-sharp từ `monitor.png` gốc 128px; bản master `Resources/AppIcon-1024.png`)
+- [x] Tạo target `App` — dùng SwiftPM thuần (`Sources/App/`, product `BetterDisplay`) + script đóng gói `scripts/build-app.sh`, không cần Xcode project
+- [x] `LSUIElement = YES` (chỉ hiện trên menu bar, không chiếm Dock), gắn `AppIcon.icns` vào bundle (`Packaging/Info.plist`)
 
-**DoD:** dùng app cả ngày không cần mở terminal; cắm/rút màn hình UI khớp thực tế; không crash.
+### Icon trên thanh menu (menu bar)
+- [x] `BetterDisplayApp.swift` — `MenuBarExtra` hiển thị icon thường trực trên menu bar
+- [x] Icon template tự đảo màu theo light/dark mode — dùng SF Symbol `display` (biến thể đen-trắng từ monitor.png để dành khi muốn cá nhân hóa)
+
+### Dialog danh sách màn hình (bấm icon để mở)
+- [x] `MenuBarExtra(style: .window)` → bấm icon mở popover/dialog thay vì menu chữ
+- [x] `AppState.swift` — subscribe `DisplayManager` + `EventMonitor`; hiển thị cả màn hình đã disconnect (ghost row từ `StateStore`, có lưu tên) để bật lại được
+- [x] `MenuView.swift` — mỗi màn hình 1 hàng: tên + độ phân giải + trạng thái + **nút switch bật/tắt** gọi `DisplayManager.setPower`
+  - [x] Switch của màn hình active cuối cùng bị disable + tooltip giải thích (SafetyGuard)
+  - [ ] Menu phụ mỗi màn hình: chọn strategy (Disconnect / DDC / Gamma) — *để sau, hiện dùng chuỗi fallback mặc định*
+  - [x] Nút "Bật tất cả màn hình" (restore) + "Thoát"
+- [x] Dialog tự cập nhật realtime khi cắm/rút cáp *(code xong — cần test tay khi có màn hình thứ 2)*
+
+### Settings (trong dialog)
+- [x] **Khởi động cùng máy (Launch at Login)**: toggle dùng `SMAppService.mainApp.register()`/`unregister()`, tự hoàn tác + báo lỗi nếu thất bại
+- [ ] Lưu tùy chọn bằng `UserDefaults`: strategy ưa thích từng màn hình — *để sau, cùng lúc với menu phụ strategy*
+
+### Hoàn thiện phase
+- [x] Xử lý app thoát khi đang dùng GammaStrategy: `applicationWillTerminate` bật lại gamma, dọn record mồ côi trong state.json
+- [x] Ad-hoc codesign + build Release qua `scripts/build-app.sh` → `dist/Better Display.app`; người dùng tự chép vào `/Applications`
+
+**DoD:** dùng app cả ngày không cần mở terminal; bấm icon menu bar → dialog hiện đủ màn hình với switch hoạt động; bật "khởi động cùng máy" rồi reboot → app tự chạy; cắm/rút màn hình UI khớp thực tế; không crash.
 
 ---
 
 ## Phase 5 — Hoàn thiện (tùy chọn, làm dần)
 
-- [ ] Launch at login (`SMAppService.mainApp.register()`) + toggle trong menu
+- ~~Launch at login~~ → đã chuyển lên Phase 4 (mục Settings)
 - [ ] Phím tắt toàn cục bật/tắt màn hình (ví dụ ⌥⌘1/2/3) — `Carbon RegisterEventHotKey` hoặc thư viện `HotKey`
 - [ ] Ghi nhớ strategy ưa thích theo từng màn hình (`StateStore`)
 - [ ] Tùy chọn: tự tắt màn hình X khi rút màn hình Y (rule engine đơn giản)

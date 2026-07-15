@@ -89,7 +89,8 @@ public final class DisplayManager {
                 displayID: displayID,
                 persistentKey: target.persistentKey,
                 strategy: strategy.kind,
-                date: Date()))
+                date: Date(),
+                name: target.name))
             do {
                 try strategy.turnOff(displayID)
                 return strategy.kind
@@ -115,6 +116,12 @@ public final class DisplayManager {
             }
         }
         throw lastError
+    }
+
+    /// Các màn hình đang được ghi nhận là đã tắt (cho UI hiển thị cả màn hình
+    /// đã disconnect — chúng không còn xuất hiện trong `allDisplays()`).
+    public func disabledRecords() -> [DisabledRecord] {
+        store.allDisabled()
     }
 
     /// Bật lại mọi màn hình từng được ghi nhận là đã tắt, và reset gamma toàn cục.

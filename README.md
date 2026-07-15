@@ -14,6 +14,21 @@ swift test             # chạy unit tests
 swift build -c release # build release → .build/release/displayctl
 ```
 
+## Menu bar app
+
+```bash
+./scripts/build-app.sh                          # đóng gói dist/Better Display.app
+cp -R "dist/Better Display.app" /Applications/  # cài đặt
+open "/Applications/Better Display.app"         # chạy
+```
+
+- Icon hình màn hình hiện trên menu bar; bấm vào mở dialog danh sách màn hình
+  với switch bật/tắt từng cái. Switch của màn hình cuối cùng tự khóa (an toàn).
+- Toggle "Khởi động cùng máy" trong dialog — **nên bật sau khi đã chép app vào
+  `/Applications`** (login item đăng ký theo đường dẫn của app đang chạy).
+- Nút "Bật tất cả màn hình" = lệnh `displayctl restore` bản GUI.
+- Màn hình đã disconnect vẫn hiện trong danh sách (kèm nhãn "Đã tắt") để bật lại.
+
 ## Sử dụng
 
 ```bash

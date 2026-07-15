@@ -9,12 +9,16 @@ public struct DisabledRecord: Codable, Equatable {
     public let persistentKey: String
     public let strategy: StrategyKind
     public let date: Date
+    /// Tên màn hình lúc tắt — để UI vẫn hiển thị được hàng của màn hình
+    /// đã disconnect (không còn trong danh sách online).
+    public let name: String?
 
-    public init(displayID: CGDirectDisplayID, persistentKey: String, strategy: StrategyKind, date: Date) {
+    public init(displayID: CGDirectDisplayID, persistentKey: String, strategy: StrategyKind, date: Date, name: String? = nil) {
         self.displayID = displayID
         self.persistentKey = persistentKey
         self.strategy = strategy
         self.date = date
+        self.name = name
     }
 }
 
