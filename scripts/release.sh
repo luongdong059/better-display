@@ -23,7 +23,8 @@ command -v gh >/dev/null 2>&1 || { echo "LỖI: thiếu gh CLI (brew install gh)
 gh auth status >/dev/null 2>&1 || { echo "LỖI: gh chưa đăng nhập — chạy: gh auth login"; exit 1; }
 [ -x "$SIGN_UPDATE" ] || { echo "LỖI: không thấy $SIGN_UPDATE — xem hướng dẫn ở đầu script"; exit 1; }
 [ -f "$KEY_FILE" ] || { echo "LỖI: không thấy private key $KEY_FILE"; exit 1; }
-git diff-index --quiet HEAD -- || { echo "LỖI: cây làm việc chưa sạch — commit/stash trước khi release"; exit 1; }
+git update-index -q --refresh
+[ -z "$(git status --porcelain)" ] || { echo "LỖI: cây làm việc chưa sạch — commit/stash trước khi release"; exit 1; }
 git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && { echo "LỖI: tag v$VERSION đã tồn tại"; exit 1; }
 grep -q "<sparkle:version>$VERSION</sparkle:version>" appcast.xml && { echo "LỖI: appcast.xml đã có bản $VERSION"; exit 1; }
 
