@@ -79,7 +79,22 @@ public enum DisplayModeControl {
         }
     }
 
-    public static func setResolution(width: Int, height: Int, for displayID: CGDirectDisplayID) throws {
+    public static func setResolution(
+        width: Int, height: Int, refreshRate: Double? = nil, for displayID: CGDirectDisplayID
+    ) throws {
+        if let refreshRate {
+            // Chỉ định tần số tường minh: chọn mode WxH có tần số gần nhất.
+            let candidates = allModes(for: displayID)
+                .filter { $0.width == width && $0.height == height }
+            guard let mode = candidates.min(by: {
+                abs($0.refreshRate - refreshRate) < abs($1.refreshRate - refreshRate)
+            }) else {
+                throw PowerControlError.configurationFailed(
+                    "màn hình không có mode \(width)x\(height) (xem `displayctl modes`)", code: 0)
+            }
+            try set(mode, for: displayID)
+            return
+        }
         guard let choice = sizeChoices(for: displayID)
             .first(where: { $0.width == width && $0.height == height }) else {
             throw PowerControlError.configurationFailed(

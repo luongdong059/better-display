@@ -8,7 +8,7 @@ struct Displayctl: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "displayctl",
         abstract: "Nhận dạng và bật/tắt màn hình trên macOS.",
-        version: "0.4.0",
+        version: BetterDisplayVersion.current,
         subcommands: [
             List.self, Off.self, On.self, Restore.self, Watch.self,
             Brightness.self, Modes.self, Resolution.self, Mirror.self, Rotate.self,
@@ -187,13 +187,23 @@ struct Modes: ParsableCommand {
 
     func run() throws {
         let target = try resolveTarget(display, in: DisplayManager().allDisplays())
-        print("Các kích thước của \"\(target.name)\" (dùng cho `displayctl resolution`):")
-        for choice in DisplayModeControl.sizeChoices(for: target.id) {
-            let marks = [
-                choice.isCurrent ? "← hiện tại" : nil,
-                choice.isHiDPI ? "HiDPI" : nil,
-            ].compactMap { $0 }.joined(separator: ", ")
-            print("  \(choice.label)\t\(Int(choice.refreshRate.rounded()))Hz" + (marks.isEmpty ? "" : "\t(\(marks))"))
+        let current = DisplayModeControl.currentMode(for: target.id)
+        print("Các mode của \"\(target.name)\" (dùng cho `displayctl resolution [--hz]`):")
+        var seen = Set<String>()
+        for mode in DisplayModeControl.allModes(for: target.id)
+            .sorted(by: { ($0.width * $0.height, $0.refreshRate) < ($1.width * $1.height, $1.refreshRate) }) {
+            let hiDPI = mode.pixelWidth > mode.width
+            let key = "\(mode.width)x\(mode.height)@\(Int(mode.refreshRate.rounded()))-\(hiDPI)"
+            guard seen.insert(key).inserted else { continue }
+            let isCurrent = current.map {
+                mode.width == $0.width && mode.height == $0.height
+                    && abs(mode.refreshRate - $0.refreshRate) < 0.5
+                    && (mode.pixelWidth > mode.width) == ($0.pixelWidth > $0.width)
+            } ?? false
+            let marks = [isCurrent ? "← hiện tại" : nil, hiDPI ? "HiDPI" : nil]
+                .compactMap { $0 }.joined(separator: ", ")
+            print("  \(mode.width)×\(mode.height)\t\(Int(mode.refreshRate.rounded()))Hz"
+                + (marks.isEmpty ? "" : "\t(\(marks))"))
         }
     }
 }
@@ -208,12 +218,17 @@ struct Resolution: ParsableCommand {
     @Argument(help: "Kích thước dạng WxH, ví dụ 1920x1080.")
     var size: String
 
+    @Option(name: .long, help: "Tần số quét mong muốn (Hz), ví dụ --hz 100.")
+    var hz: Double?
+
     func run() throws {
         let parts = size.lowercased().split(separator: "x").compactMap { Int($0) }
         guard parts.count == 2 else { throw ValidationError("Kích thước phải có dạng WxH, ví dụ 1920x1080.") }
         let target = try resolveTarget(display, in: DisplayManager().allDisplays())
-        try DisplayModeControl.setResolution(width: parts[0], height: parts[1], for: target.id)
-        print("Đã đổi \"\(target.name)\" sang \(parts[0])×\(parts[1]). Đổi lại nếu cần: displayctl modes \(target.id)")
+        try DisplayModeControl.setResolution(width: parts[0], height: parts[1], refreshRate: hz, for: target.id)
+        print("Đã đổi \"\(target.name)\" sang \(parts[0])×\(parts[1])"
+            + (hz.map { " @ \(Int($0))Hz" } ?? "")
+            + ". Xem lại: displayctl modes \(target.id)")
     }
 }
 

@@ -1,7 +1,26 @@
-# better-display
+# Better Display
 
-Tiện ích macOS nhận dạng các màn hình đang kết nối và bật/tắt từng màn hình.
-Xem [ARCHITECTURE.md](ARCHITECTURE.md) (kiến trúc) và [TODO.md](TODO.md) (tiến độ).
+Tiện ích menu bar cho macOS: nhận dạng màn hình, bật/tắt từng màn hình
+(disconnect hoặc tắt nguồn thật qua DDC), chỉnh độ sáng, kích thước,
+xoay màn hình và mirror — tất cả trong một dialog nhỏ trên thanh menu.
+
+> **EN**: macOS menu bar utility to detect displays and control them per-display:
+> power on/off (disconnect or true DDC standby), brightness, resolution,
+> rotation, mirroring. Universal binary (Apple Silicon + Intel), macOS 13+,
+> auto-updates via Sparkle. Grab the latest `.zip` from
+> [Releases](https://github.com/luongdong059/better-display/releases).
+
+## Cài đặt (người dùng)
+
+1. Tải file `Better-Display-x.y.z.zip` mới nhất từ [Releases](https://github.com/luongdong059/better-display/releases)
+2. Giải nén, kéo `Better Display.app` vào thư mục **Applications**
+3. Lần đầu mở sẽ bị macOS chặn (app chưa notarize): vào **System Settings →
+   Privacy & Security** → kéo xuống bấm **"Open Anyway"** — hoặc chạy:
+   ```bash
+   xattr -cr "/Applications/Better Display.app"
+   ```
+4. Icon hình màn hình xuất hiện trên menu bar. Từ đây về sau app **tự cập nhật**
+   khi có bản mới (không cần làm lại bước 3).
 
 ## Yêu cầu hệ thống
 
