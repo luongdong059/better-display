@@ -120,7 +120,7 @@ protocol PowerControlStrategy {
 
 | Strategy | Cơ chế | API | Phạm vi | Rủi ro |
 |---|---|---|---|---|
-| **Disconnect** (A — mặc định) | macOS coi màn hình như đã rút cáp | `SLSConfigureDisplayEnabled` (SkyLight, private) | Mọi màn hình | Private API có thể đổi giữa các bản macOS |
+| **Disconnect** (A — mặc định) | macOS coi màn hình như đã rút cáp | `SLSConfigureDisplayEnabled(config, id, enabled)` (SkyLight, private) — tham số đầu là `CGDisplayConfigRef`, phải gọi trong transaction `CGBeginDisplayConfiguration`/`CGCompleteDisplayConfiguration` | Mọi màn hình | Private API có thể đổi giữa các bản macOS |
 | **DDC** (B — "tắt nguồn thật") | Gửi VCP `0xD6` (power mode) tới màn hình | Apple Silicon: `IOAVService` + `AVServiceWriteI2C` (private); Intel: I2C qua IOFramebuffer | Chỉ màn hình ngoài, không qua DisplayLink | Tùy màn hình có hỗ trợ |
 | **Mirror** (C — fallback) | Màn hình chỉ mirror màn hình chính | `CGConfigureDisplayMirrorOfDisplay` (public) | Mọi màn hình | Màn hình vẫn sáng |
 | **Gamma** (D — fallback cuối) | Kéo gamma về đen | `CGSetDisplayTransferByFormula` (public) | Mọi màn hình | Vẫn sáng đèn nền; reset khi app thoát |
