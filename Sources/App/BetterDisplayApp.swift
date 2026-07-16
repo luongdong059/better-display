@@ -11,16 +11,22 @@ struct BetterDisplayApp: App {
         MenuBarExtra {
             MenuView().environmentObject(state)
         } label: {
+            Image(nsImage: Self.menuBarIcon)
             // Icon đổi trạng thái: hiện số màn hình đang tắt.
             if state.offCount > 0 {
-                Image(systemName: "display.slash")
                 Text("\(state.offCount)")
-            } else {
-                Image(systemName: "display")
             }
         }
         .menuBarExtraStyle(.window)
     }
+
+    // Logo app thu nhỏ làm icon menu bar; size tính theo point nên
+    // NSImage tự chọn bản @2x trên màn Retina.
+    private static let menuBarIcon: NSImage = {
+        let image = Bundle.module.image(forResource: "MenuBarIcon") ?? NSImage()
+        image.size = NSSize(width: 18, height: 18)
+        return image
+    }()
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {

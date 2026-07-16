@@ -28,7 +28,8 @@ let package = Package(
                 "DisplayCore",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            path: "Sources/App"
+            path: "Sources/App",
+            resources: [.process("Resources")]
         ),
         .testTarget(name: "DisplayCoreTests", dependencies: ["DisplayCore"]),
     ]

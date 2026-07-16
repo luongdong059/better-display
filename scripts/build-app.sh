@@ -20,6 +20,11 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Framewor
 cp "$BIN" "$APP/Contents/MacOS/BetterDisplay"
 cp Packaging/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+
+# Bundle resource của SPM (icon menu bar) — Bundle.module tìm nó trong Contents/Resources.
+RES_BUNDLE="$(dirname "$BIN")/better-display_BetterDisplay.bundle"
+[ -d "$RES_BUNDLE" ] || { echo "Không tìm thấy $RES_BUNDLE"; exit 1; }
+cp -R "$RES_BUNDLE" "$APP/Contents/Resources/"
 cp -R "$SPARKLE_FW" "$APP/Contents/Frameworks/"
 
 # Binary tìm Sparkle qua @rpath — trỏ vào Contents/Frameworks của bundle.
