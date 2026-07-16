@@ -11,6 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.0"),
     ],
     targets: [
         .target(name: "DisplayCore"),
@@ -23,7 +24,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "BetterDisplay",
-            dependencies: ["DisplayCore"],
+            dependencies: [
+                "DisplayCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/App"
         ),
         .testTarget(name: "DisplayCoreTests", dependencies: ["DisplayCore"]),

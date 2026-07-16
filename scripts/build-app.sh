@@ -1,22 +1,33 @@
 #!/bin/bash
-# Đóng gói Better Display.app từ SwiftPM build (release) + ad-hoc codesign.
-# Kết quả: dist/Better Display.app — kéo vào /Applications để cài.
+# Đóng gói Better Display.app (universal: arm64 + x86_64) + Sparkle.framework
+# + ad-hoc codesign. Kết quả: dist/Better Display.app
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "==> swift build -c release"
-swift build -c release --product BetterDisplay
+echo "==> swift build -c release (universal arm64 + x86_64)"
+swift build -c release --arch arm64 --arch x86_64 --product BetterDisplay
+
+BIN=".build/apple/Products/Release/BetterDisplay"
+[ -f "$BIN" ] || BIN=".build/release/BetterDisplay"
+
+SPARKLE_FW=$(find .build/artifacts -type d -name "Sparkle.framework" -path "*macos*" | head -1)
+[ -n "$SPARKLE_FW" ] || { echo "Không tìm thấy Sparkle.framework trong .build/artifacts"; exit 1; }
 
 APP="dist/Better Display.app"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 
-cp .build/release/BetterDisplay "$APP/Contents/MacOS/BetterDisplay"
+cp "$BIN" "$APP/Contents/MacOS/BetterDisplay"
 cp Packaging/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp -R "$SPARKLE_FW" "$APP/Contents/Frameworks/"
 
-echo "==> codesign (ad-hoc)"
+# Binary tìm Sparkle qua @rpath — trỏ vào Contents/Frameworks của bundle.
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/BetterDisplay" 2>/dev/null || true
+
+echo "==> codesign (ad-hoc, gồm cả Sparkle XPC services)"
 codesign --force --deep -s - "$APP"
 
+echo "==> kiến trúc: $(lipo -archs "$APP/Contents/MacOS/BetterDisplay")"
 echo "==> OK: $APP"
 echo "Cài đặt:  cp -R \"$APP\" /Applications/"

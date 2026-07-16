@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Better Display</title>
+        <link>https://raw.githubusercontent.com/luongdong059/better-display/main/appcast.xml</link>
+        <description>Bản cập nhật của Better Display</description>
+        <language>vi</language>
+        <!-- ITEMS -->
+    </channel>
+</rss>

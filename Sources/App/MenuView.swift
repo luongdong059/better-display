@@ -31,6 +31,12 @@ struct MenuView: View {
 
             Toggle("Khởi động cùng máy", isOn: $state.launchAtLogin)
 
+            if state.canCheckForUpdates {
+                Button("Kiểm tra bản cập nhật…") { state.checkForUpdates() }
+                    .buttonStyle(.link)
+                    .font(.callout)
+            }
+
             Divider()
 
             HStack {

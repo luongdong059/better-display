@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import DisplayCore
 import ServiceManagement
+import Sparkle
 import SwiftUI
 
 /// Trạng thái trung tâm của app: danh sách màn hình (kể cả màn hình đã
@@ -30,6 +31,19 @@ final class AppState: ObservableObject {
     private let monitor = EventMonitor()
     private var isSyncingLaunchToggle = false
     private static let preferencesKey = "preferredStrategies"
+
+    /// Sparkle — chỉ khởi động khi chạy từ bundle có khai báo SUFeedURL
+    /// (chạy binary trần lúc dev thì không có, tránh Sparkle báo lỗi).
+    private let updaterController: SPUStandardUpdaterController? =
+        Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
+            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+            : nil
+
+    var canCheckForUpdates: Bool { updaterController != nil }
+
+    func checkForUpdates() {
+        updaterController?.checkForUpdates(nil)
+    }
 
     init() {
         let store = StateStore()

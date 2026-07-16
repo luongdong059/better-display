@@ -3,6 +3,15 @@
 Tiện ích macOS nhận dạng các màn hình đang kết nối và bật/tắt từng màn hình.
 Xem [ARCHITECTURE.md](ARCHITECTURE.md) (kiến trúc) và [TODO.md](TODO.md) (tiến độ).
 
+## Yêu cầu hệ thống
+
+- **macOS 13 (Ventura) trở lên**
+- **Apple Silicon hoặc Intel** (universal binary từ v0.5.0)
+  - Riêng nhóm tính năng DDC (chỉnh độ sáng, tắt nguồn thật màn hình ngoài)
+    chỉ có trên **Apple Silicon** — trên Intel các mục này tự ẩn/báo không hỗ trợ,
+    những tính năng còn lại (bật/tắt disconnect, mirror, đổi kích thước, xoay)
+    hoạt động bình thường. *Chưa test thực tế trên máy Intel.*
+
 **Trạng thái:** Phase 0–1 hoàn thành và đã verify. Phase 2 (bật/tắt) code xong,
 đã verify phần an toàn; phần disconnect thật cần màn hình thứ 2 để test.
 
@@ -60,6 +69,14 @@ Trước khi test: **bật SSH** (System Settings → General → Sharing → Re
 
 ## Ghi chú kỹ thuật
 
+- **Cập nhật tự động (Sparkle)**: app tự kiểm tra bản mới mỗi ngày qua
+  `appcast.xml` (host trên nhánh main của repo này), gói update tải từ GitHub
+  Releases và được xác minh chữ ký EdDSA. Kiểm tra thủ công: nút "Kiểm tra bản
+  cập nhật…" trong dialog.
+- **Phát hành bản mới**: `./scripts/release.sh <version> "<ghi chú>"` — tự bump
+  version, build universal, ký zip, cập nhật appcast.xml, tag + GitHub Release.
+  Cần `gh` CLI đã đăng nhập và private key tại
+  `~/.config/better-display/sparkle_private_key` (giữ cẩn thận, KHÔNG đưa vào repo).
 - Chiến lược `disconnect` dùng private API `SLSConfigureDisplayEnabled` (SkyLight),
   nạp runtime bằng `dlopen`/`dlsym` — đã xác nhận tồn tại trên macOS 26.5.
   Nếu bản macOS mới bỏ API, tự chuyển sang `mirror`/`gamma`.
