@@ -153,6 +153,57 @@ Mục tiêu: điều khiển mọi thứ bằng chuột từ thanh menu — bấ
 
 ---
 
+## Phase 6 — Điều khiển nâng cao từng màn hình (kế hoạch 2026-07-16)
+
+Mục tiêu: mỗi hàng màn hình trong dialog có **nút xổ xuống** (`DisclosureGroup`) mở khu điều khiển riêng của màn hình đó: độ sáng (slider), kích thước (slider), xoay màn hình, mirror.
+
+### 6A. Độ sáng — slider (dễ nhất, tái dùng DDC của Phase 3)
+- [ ] `BrightnessControl.swift` trong DisplayCore: đọc/ghi VCP `0x10` qua `IOAVServiceDDC` (đã có sẵn `readVCP`/`writeVCP`)
+  - [ ] `brightness(for:) -> (current, max)?` và `setBrightness(_:for:)`
+  - [ ] Throttle ghi ~100–150ms: I2C chậm, kéo slider liên tục sẽ nghẽn kênh DDC
+- [ ] CLI test trước: `displayctl brightness <id> [0-100]` (không có giá trị = đọc)
+- [ ] UI: `Slider` icon ☀️; disable + tooltip với màn không hỗ trợ DDC
+- [ ] (Tùy chọn về sau) màn hình built-in MacBook qua DisplayServices private API — Mac mini không cần
+- Rủi ro: **thấp** — VCP 0x10 là lệnh DDC phổ biến nhất; cả P24FBA lẫn LG đều đã trả lời DDC
+
+### 6B. Kích thước màn hình — slider (public API)
+- [ ] `DisplayModeControl.swift`: liệt kê mode qua `CGDisplayCopyAllDisplayModes` + option `kCGDisplayShowDuplicateLowResolutionModes` (lấy đủ mode HiDPI/scaled); lọc trùng, sắp theo diện tích
+- [ ] Đổi mode: `CGConfigureDisplayWithDisplayMode` trong transaction Begin/Complete (pattern sẵn có từ MirrorStrategy)
+- [ ] **Đếm ngược hoàn tác 10s** sau khi đổi (giống System Settings) — phòng chọn mode màn hình không hiển thị được; tái dùng tư duy SafetyGuard
+- [ ] CLI test trước: `displayctl modes <id>` và `displayctl resolution <id> <WxH>`
+- [ ] UI: slider bậc thang snap theo danh sách mode, hiện "1920×1080" trên slider
+- Rủi ro: **thấp** — toàn public API
+
+### 6C. Mirror (tái dùng MirrorStrategy đã chạy)
+- [ ] Tách logic thành `MirrorControl.setMirror(display, of: master?)` (nil = thoát mirror); MirrorStrategy gọi lại hàm này
+- [ ] CLI: `displayctl mirror <id> --of <id>` / `--off`
+- [ ] UI: Picker "Mirror: Tắt / <tên các màn hình đang bật khác>"
+- Rủi ro: **thấp** — core đã verify từ Phase 2
+
+### 6D. Xoay màn hình (rotation) — làm CUỐI, cần điều tra private API
+- [ ] Đọc góc hiện tại: `CGDisplayRotation(id)` (public, chỉ đọc)
+- [ ] Điều tra API ghi bằng đúng phương pháp đã thành công với disconnect (dlsym → test từng bước → đọc crash report khi sai chữ ký):
+  - Ứng viên: `SLSConfigureDisplayTransform` / `CGSSetDisplayRotation` (SkyLight); tham khảo source displayplacer (đã làm được rotation trên Apple Silicon)
+  - `kIOFBSetTransform` là đường Intel cũ — bỏ qua
+- [ ] CLI: `displayctl rotate <id> <0|90|180|270>`
+- [ ] UI: Picker 4 góc (0°/90°/180°/270°), không dùng slider
+- Rủi ro: **trung bình** — private API, có thể vấp bẫy chữ ký như `SLSConfigureDisplayEnabled`; xoay nhầm vẫn cứu được bằng xoay về 0° hoặc rút cắm lại cáp
+
+### UI xổ xuống (ghép dần theo từng tính năng xong)
+- [ ] Bọc `DisplayRowView` trong `DisclosureGroup` — hàng chính giữ nguyên (tên + switch), xổ xuống hiện: Slider độ sáng, Slider kích thước, Picker xoay, Picker mirror
+- [ ] Chỉ đọc giá trị (độ sáng/mode/góc) khi disclosure MỞ — tránh spam kênh DDC lúc đóng
+- [ ] Dialog giới hạn chiều cao, `ScrollView` khi mở nhiều màn hình
+- [ ] Nhớ trạng thái mở/đóng trong phiên chạy (không cần persist)
+
+### Thứ tự làm & ước lượng (tổng ~4–5 ngày thong thả)
+1. 6A độ sáng (0,5–1 ngày) → 2. 6B kích thước (1 ngày) → 3. 6C mirror (0,5 ngày) → 4. UI xổ xuống hoàn chỉnh (1 ngày) → 5. 6D rotation (1–2 ngày điều tra)
+
+Nguyên tắc giữ nguyên: mỗi tính năng làm **CLI trước để test, GUI sau**; giá trị đọc chậm (DDC) không đưa vào `DisplayInfo` mà đọc theo yêu cầu khi mở disclosure.
+
+**DoD:** kéo slider độ sáng cả 2 màn hình đổi realtime; đổi kích thước có đếm ngược hoàn tác; bật/tắt mirror từ dialog; xoay 90° rồi về 0° không mất hình; đóng/mở dialog không giật lag.
+
+---
+
 ## Sổ tay rủi ro (đọc lại khi gặp sự cố)
 
 | Rủi ro | Phòng ngừa |
