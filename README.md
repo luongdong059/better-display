@@ -86,6 +86,22 @@ Trước khi test: **bật SSH** (System Settings → General → Sharing → Re
 Đã verify sẵn trên máy 1 màn hình: `off` màn hình duy nhất bị SafetyGuard chặn,
 `restore` chạy an toàn khi không có gì để khôi phục.
 
+## Ma trận màn hình đã test
+
+Môi trường: **Mac mini M4, macOS 26.5** (2026-07-16). Bản Intel (x86_64) smoke test qua Rosetta trên cùng máy — chưa test trên máy Intel thật.
+
+| Màn hình | Bật/tắt (disconnect) | DDC tắt nguồn | DDC độ sáng | Kích thước | Xoay | Mirror |
+|---|---|---|---|---|---|---|
+| P24FBA-RAGL (1080p 100Hz) | ✅ | dò được, chưa test chu kỳ | ✅ đọc | ✅ (kèm `--hz`) | — | ✅ làm master |
+| LG FULL HD (1080p 75Hz) | ✅ 10/10 stress test | ✅ standby + wake | ✅ đọc/ghi | ✅ 720p↔1080p | ✅ 90°↔0° | ✅ |
+| EK241Y (1080p 60Hz) | ✅ (SafetyGuard chặn khi là màn duy nhất) | — | — | — | — | — |
+
+## Phím tắt toàn cục
+
+- **⌥⌘1–9**: bật/tắt màn hình theo thứ tự hiển thị trong dialog
+- **⌥⌘0**: bật lại TẤT CẢ màn hình (phím cứu hộ khi lỡ tắt nhầm)
+- Bật/tắt tính năng này trong dialog; không cần cấp quyền Accessibility
+
 ## Ghi chú kỹ thuật
 
 - **Cập nhật tự động (Sparkle)**: app tự kiểm tra bản mới mỗi ngày qua

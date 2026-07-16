@@ -31,6 +31,8 @@ struct MenuView: View {
 
             Toggle("Khởi động cùng máy", isOn: $state.launchAtLogin)
 
+            Toggle("Phím tắt toàn cục (⌥⌘1-9, ⌥⌘0 = bật tất cả)", isOn: $state.hotkeysEnabled)
+
             if state.canCheckForUpdates {
                 Button("Kiểm tra bản cập nhật…") { state.checkForUpdates() }
                     .buttonStyle(.link)
@@ -60,8 +62,8 @@ struct MenuView: View {
 
     @ViewBuilder
     private var displayList: some View {
-        let rows = ForEach(state.rows) { row in
-            DisplayRowView(row: row)
+        let rows = ForEach(Array(state.rows.enumerated()), id: \.element.id) { index, row in
+            DisplayRowView(row: row, index: index)
         }
         if state.rows.count > 3 {
             ScrollView {
@@ -92,6 +94,7 @@ struct MenuView: View {
 private struct DisplayRowView: View {
     @EnvironmentObject private var state: AppState
     let row: AppState.Row
+    let index: Int
     @State private var expanded = false
 
     private var subtitle: String {
@@ -137,6 +140,14 @@ private struct DisplayRowView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+
+                if state.hotkeysEnabled, index < 9 {
+                    Text("⌥⌘\(index + 1)")
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.tertiary)
+                        .help("Phím tắt bật/tắt màn hình này")
+                }
+
                 Toggle("", isOn: Binding(
                     get: { row.info.isEnabled },
                     set: { state.setPower($0, for: row) }))

@@ -29,8 +29,10 @@ final class AppState: ObservableObject {
     private let store: StateStore
     private let manager: DisplayManager
     private let monitor = EventMonitor()
+    private let hotKeys = HotKeyManager()
     private var isSyncingLaunchToggle = false
     private static let preferencesKey = "preferredStrategies"
+    private static let hotkeysKey = "hotkeysEnabled"
 
     /// Sparkle — chỉ khởi động khi chạy từ bundle có khai báo SUFeedURL
     /// (chạy binary trần lúc dev thì không có, tránh Sparkle báo lỗi).
@@ -53,6 +55,9 @@ final class AppState: ObservableObject {
         if let raw = UserDefaults.standard.dictionary(forKey: Self.preferencesKey) as? [String: String] {
             self.preferredStrategies = raw.compactMapValues(StrategyKind.init(rawValue:))
         }
+        self.hotkeysEnabled = UserDefaults.standard.object(forKey: Self.hotkeysKey) as? Bool ?? true
+        hotKeys.onHotKey = { [weak self] id in self?.handleHotKey(id) }
+        if hotkeysEnabled { hotKeys.register() }
         refresh()
         monitor.onChange = { [weak self] in
             // Cắm/rút cáp có thể đổi proxy DDC — xóa cache để dò lại.
@@ -117,6 +122,38 @@ final class AppState: ObservableObject {
     /// nhưng khóa từ UI để người dùng hiểu ngay).
     func isLastActive(_ row: Row) -> Bool {
         row.info.isEnabled && !rows.contains { $0.info.isEnabled && $0.id != row.id }
+    }
+
+    // MARK: - Phase 5: phím tắt toàn cục + trạng thái icon
+
+    /// ⌥⌘1–9 bật/tắt màn hình theo thứ tự hiển thị; ⌥⌘0 = bật tất cả (cứu hộ).
+    @Published var hotkeysEnabled: Bool = true {
+        didSet {
+            UserDefaults.standard.set(hotkeysEnabled, forKey: Self.hotkeysKey)
+            hotkeysEnabled ? hotKeys.register() : hotKeys.unregister()
+        }
+    }
+
+    /// Số màn hình đang tắt — hiển thị trên icon menu bar.
+    var offCount: Int {
+        rows.filter { !$0.info.isEnabled }.count
+    }
+
+    private func handleHotKey(_ id: Int) {
+        if id == 0 {
+            restoreAll()
+            return
+        }
+        let index = id - 1
+        guard rows.indices.contains(index) else {
+            NSSound.beep()
+            return
+        }
+        let row = rows[index]
+        setPower(!row.info.isEnabled, for: row)
+        if lastError != nil {
+            NSSound.beep()
+        }
     }
 
     // MARK: - Phase 6: độ sáng

@@ -8,8 +8,16 @@ struct BetterDisplayApp: App {
     @StateObject private var state = AppState()
 
     var body: some Scene {
-        MenuBarExtra("Better Display", systemImage: "display") {
+        MenuBarExtra {
             MenuView().environmentObject(state)
+        } label: {
+            // Icon đổi trạng thái: hiện số màn hình đang tắt.
+            if state.offCount > 0 {
+                Image(systemName: "display.slash")
+                Text("\(state.offCount)")
+            } else {
+                Image(systemName: "display")
+            }
         }
         .menuBarExtraStyle(.window)
     }

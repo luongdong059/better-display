@@ -141,15 +141,15 @@ Mục tiêu: điều khiển mọi thứ bằng chuột từ thanh menu — bấ
 
 ---
 
-## Phase 5 — Hoàn thiện (tùy chọn, làm dần)
+## Phase 5 — Hoàn thiện ✅ (2026-07-16)
 
-- ~~Launch at login~~ → đã chuyển lên Phase 4 (mục Settings)
-- [ ] Phím tắt toàn cục bật/tắt màn hình (ví dụ ⌥⌘1/2/3) — `Carbon RegisterEventHotKey` hoặc thư viện `HotKey`
-- [ ] Ghi nhớ strategy ưa thích theo từng màn hình (`StateStore`)
-- [ ] Tùy chọn: tự tắt màn hình X khi rút màn hình Y (rule engine đơn giản)
-- [ ] Icon menu bar đổi trạng thái (số màn hình đang tắt)
-- [ ] README.md: hướng dẫn build, cài, ma trận màn hình đã test, ghi chú tương thích macOS
-- [ ] Khi lên bản macOS mới: chạy lại checklist Phase 2 để xác minh private API còn sống
+- ~~Launch at login~~ → đã làm ở Phase 4 (mục Settings)
+- [x] Phím tắt toàn cục — `Carbon RegisterEventHotKey` (không cần quyền Accessibility): **⌥⌘1–9** bật/tắt màn hình theo thứ tự trong dialog, **⌥⌘0** = bật tất cả (phím cứu hộ). Hint phím hiện trên từng hàng; toggle bật/tắt trong dialog (lưu UserDefaults); beep khi thao tác bị chặn/lỗi
+- [x] ~~Ghi nhớ strategy ưa thích~~ → đã làm ở Phase 4 (UserDefaults theo persistentKey)
+- [ ] Rule engine (tự tắt màn X khi rút màn Y) — **gác lại**: chưa có use case thực với setup hiện tại
+- [x] Icon menu bar đổi trạng thái: `display.slash` + số màn hình đang tắt; `display` khi tất cả đang bật
+- [x] README: hướng dẫn cài cho người dùng, ma trận màn hình đã test, phím tắt, ghi chú tương thích
+- [ ] Khi lên bản macOS mới: chạy lại checklist Phase 2 để xác minh private API còn sống *(việc định kỳ, giữ lại)*
 
 ---
 
