@@ -25,7 +25,7 @@ public struct DDCStrategy: PowerControlStrategy {
     /// lệnh đọc VCP power mode.
     public func probeSupport(for displayID: CGDirectDisplayID) -> Bool {
         guard CGDisplayIsBuiltin(displayID) == 0, IOAVServiceDDC.isAvailable,
-              let service = IOAVServiceDDC.avService(for: displayID)
+              let service = IOAVServiceDDC.cachedService(for: displayID)
         else { return false }
         return IOAVServiceDDC.readVCP(service, code: Self.powerModeVCP) != nil
     }

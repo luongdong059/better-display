@@ -40,7 +40,11 @@ final class AppState: ObservableObject {
             self.preferredStrategies = raw.compactMapValues(StrategyKind.init(rawValue:))
         }
         refresh()
-        monitor.onChange = { [weak self] in self?.refresh() }
+        monitor.onChange = { [weak self] in
+            // Cắm/rút cáp có thể đổi proxy DDC — xóa cache để dò lại.
+            BrightnessControl.invalidateCache()
+            self?.refresh()
+        }
         monitor.start()
     }
 
@@ -99,6 +103,145 @@ final class AppState: ObservableObject {
     /// nhưng khóa từ UI để người dùng hiểu ngay).
     func isLastActive(_ row: Row) -> Bool {
         row.info.isEnabled && !rows.contains { $0.info.isEnabled && $0.id != row.id }
+    }
+
+    // MARK: - Phase 6: độ sáng
+
+    struct BrightnessState {
+        var percent: Double
+        var maxValue: UInt16
+    }
+
+    @Published var brightnessStates: [CGDirectDisplayID: BrightnessState] = [:]
+    private var brightnessPending: [CGDirectDisplayID: DispatchWorkItem] = [:]
+
+    /// Đọc độ sáng khi mở khu điều khiển — chạy nền vì DDC chậm (~50-100ms).
+    func loadBrightness(for row: Row) {
+        let id = row.info.id
+        guard row.info.supportsDDC, brightnessStates[id] == nil else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = BrightnessControl.brightness(for: id)
+            DispatchQueue.main.async {
+                guard let self, let result else { return }
+                self.brightnessStates[id] = BrightnessState(
+                    percent: Double(result.current) / Double(max(result.max, 1)) * 100,
+                    maxValue: result.max)
+            }
+        }
+    }
+
+    /// Cập nhật UI ngay, ghi DDC trễ 150ms (gộp các lần kéo slider liên tiếp).
+    func setBrightness(percent: Double, for row: Row) {
+        let id = row.info.id
+        guard var state = brightnessStates[id] else { return }
+        state.percent = percent
+        brightnessStates[id] = state
+
+        brightnessPending[id]?.cancel()
+        let maxValue = state.maxValue
+        let item = DispatchWorkItem {
+            let raw = UInt16((percent / 100 * Double(maxValue)).rounded())
+            DispatchQueue.global(qos: .userInitiated).async {
+                try? BrightnessControl.setBrightness(raw, for: id)
+            }
+        }
+        brightnessPending[id] = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: item)
+    }
+
+    // MARK: - Phase 6: kích thước (kèm đếm ngược hoàn tác)
+
+    struct PendingRevert {
+        let displayID: CGDirectDisplayID
+        let displayName: String
+        let previousMode: CGDisplayMode
+        var seconds: Int
+    }
+
+    @Published var pendingRevert: PendingRevert?
+    private var revertTimer: Timer?
+
+    func sizeChoices(for row: Row) -> [DisplaySizeChoice] {
+        DisplayModeControl.sizeChoices(for: row.info.id)
+    }
+
+    func applySize(_ choice: DisplaySizeChoice, for row: Row) {
+        guard let previous = DisplayModeControl.currentMode(for: row.info.id) else { return }
+        do {
+            try DisplayModeControl.set(choice.mode, for: row.info.id)
+            startRevertCountdown(for: row, previous: previous)
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+        refresh()
+    }
+
+    private func startRevertCountdown(for row: Row, previous: CGDisplayMode) {
+        revertTimer?.invalidate()
+        pendingRevert = PendingRevert(
+            displayID: row.info.id, displayName: row.info.name,
+            previousMode: previous, seconds: 10)
+        revertTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self, var pending = self.pendingRevert else { return }
+            pending.seconds -= 1
+            if pending.seconds <= 0 {
+                self.revertModeChange()
+            } else {
+                self.pendingRevert = pending
+            }
+        }
+    }
+
+    func confirmModeChange() {
+        revertTimer?.invalidate()
+        revertTimer = nil
+        pendingRevert = nil
+    }
+
+    func revertModeChange() {
+        if let pending = pendingRevert {
+            try? DisplayModeControl.set(pending.previousMode, for: pending.displayID)
+        }
+        confirmModeChange()
+        refresh()
+    }
+
+    // MARK: - Phase 6: xoay màn hình
+
+    func rotation(for row: Row) -> Int {
+        RotationControl.rotation(for: row.info.id)
+    }
+
+    func setRotation(_ degrees: Int, for row: Row) {
+        do {
+            try RotationControl.setRotation(degrees, for: row.info.id)
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+        refresh()
+    }
+
+    // MARK: - Phase 6: mirror
+
+    func mirrorMaster(for row: Row) -> CGDirectDisplayID {
+        MirrorControl.master(of: row.info.id) ?? 0
+    }
+
+    /// Các màn hình có thể làm master cho row này.
+    func mirrorCandidates(for row: Row) -> [Row] {
+        rows.filter { $0.id != row.id && $0.info.isEnabled && !$0.isGhost }
+    }
+
+    func setMirror(master: CGDirectDisplayID, for row: Row) {
+        do {
+            try MirrorControl.setMirror(row.info.id, of: master == 0 ? nil : master)
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+        refresh()
     }
 
     private func applyLaunchAtLogin() {

@@ -25,6 +25,7 @@ public enum PowerControlError: LocalizedError, Equatable {
     case strategyUnavailable(StrategyKind, reason: String)
     case operationFailed(StrategyKind, code: Int32)
     case noStrategyAvailable
+    case configurationFailed(String, code: Int32)
 
     public var errorDescription: String? {
         switch self {
@@ -38,6 +39,8 @@ public enum PowerControlError: LocalizedError, Equatable {
             return "Chiến lược \(kind.rawValue) thất bại (mã lỗi \(code))."
         case .noStrategyAvailable:
             return "Không có chiến lược bật/tắt nào khả dụng cho màn hình này."
+        case .configurationFailed(let what, let code):
+            return "Thao tác thất bại: \(what)" + (code != 0 ? " (mã lỗi \(code))" : "")
         }
     }
 }

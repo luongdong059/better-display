@@ -29,6 +29,32 @@ enum IOAVServiceDDC {
         createWithService != nil && writeI2C != nil && readI2C != nil
     }
 
+    // MARK: - Cache
+
+    // Dò registry + đọc EDID mỗi lần rất chậm (~chục ms) — không hợp với slider
+    // độ sáng. Chỉ cache kết quả match EDID chắc chắn (không cache fallback
+    // "proxy im lặng"). Xóa cache khi cấu hình màn hình thay đổi.
+    private static var serviceCache: [CGDirectDisplayID: AnyObject] = [:]
+    private static let cacheLock = NSLock()
+
+    static func cachedService(for displayID: CGDirectDisplayID) -> AnyObject? {
+        cacheLock.lock()
+        let hit = serviceCache[displayID]
+        cacheLock.unlock()
+        if let hit { return hit }
+        guard let av = avService(for: displayID, allowSilentFallback: false) else { return nil }
+        cacheLock.lock()
+        serviceCache[displayID] = av
+        cacheLock.unlock()
+        return av
+    }
+
+    static func invalidateCache() {
+        cacheLock.lock()
+        serviceCache.removeAll()
+        cacheLock.unlock()
+    }
+
     // MARK: - Map CGDirectDisplayID → IOAVService
 
     /// Ghép proxy ↔ màn hình bằng cách đọc EDID qua chính kênh I2C của proxy
@@ -36,7 +62,7 @@ enum IOAVServiceDDC {
     /// Bền hơn dựa vào property của IORegistry ("EDID UUID" đã biến mất khỏi
     /// DCPAVServiceProxy từ macOS 26).
     /// Hạn chế đã biết: 2 màn hình cùng model + cùng serial thì không phân biệt được.
-    static func avService(for displayID: CGDirectDisplayID) -> AnyObject? {
+    static func avService(for displayID: CGDirectDisplayID, allowSilentFallback: Bool = true) -> AnyObject? {
         guard let createWithService else { return nil }
         let vendor = CGDisplayVendorNumber(displayID)
         let model = CGDisplayModelNumber(displayID)
@@ -77,7 +103,7 @@ enum IOAVServiceDDC {
                 return av
             }
         }
-        return silent.count == 1 ? silent[0] : nil
+        return (allowSilentFallback && silent.count == 1) ? silent[0] : nil
     }
 
     /// Đọc 128 byte EDID cơ bản qua I2C chip 0x50, xác thực header chuẩn.

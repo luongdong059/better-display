@@ -8,8 +8,11 @@ struct Displayctl: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "displayctl",
         abstract: "Nhận dạng và bật/tắt màn hình trên macOS.",
-        version: "0.1.0",
-        subcommands: [List.self, Off.self, On.self, Restore.self, Watch.self],
+        version: "0.4.0",
+        subcommands: [
+            List.self, Off.self, On.self, Restore.self, Watch.self,
+            Brightness.self, Modes.self, Resolution.self, Mirror.self, Rotate.self,
+        ],
         defaultSubcommand: List.self
     )
 }
@@ -144,6 +147,127 @@ struct Restore: ParsableCommand {
             case .failure(let error):
                 print("Không bật lại được màn hình \(id): \(error.localizedDescription)")
             }
+        }
+    }
+}
+
+struct Brightness: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Đọc/đặt độ sáng màn hình ngoài qua DDC (VCP 0x10).")
+
+    @Argument(help: "ID hoặc tên màn hình.")
+    var display: String
+
+    @Argument(help: "Độ sáng 0-100 (%). Bỏ trống để đọc giá trị hiện tại.")
+    var value: Int?
+
+    func run() throws {
+        let target = try resolveTarget(display, in: DisplayManager().allDisplays())
+        guard let current = BrightnessControl.brightness(for: target.id) else {
+            throw ValidationError("\"\(target.name)\" không trả lời lệnh đọc độ sáng qua DDC.")
+        }
+        if let value {
+            guard (0...100).contains(value) else { throw ValidationError("Độ sáng phải trong khoảng 0-100.") }
+            let raw = UInt16((Double(value) / 100 * Double(current.max)).rounded())
+            try BrightnessControl.setBrightness(raw, for: target.id)
+            print("Đã đặt độ sáng \"\(target.name)\" = \(value)% (\(raw)/\(current.max)).")
+        } else {
+            let percent = Int((Double(current.current) / Double(max(current.max, 1)) * 100).rounded())
+            print("\(target.name): \(percent)% (\(current.current)/\(current.max))")
+        }
+    }
+}
+
+struct Modes: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Liệt kê các display mode khả dụng của màn hình.")
+
+    @Argument(help: "ID hoặc tên màn hình.")
+    var display: String
+
+    func run() throws {
+        let target = try resolveTarget(display, in: DisplayManager().allDisplays())
+        print("Các kích thước của \"\(target.name)\" (dùng cho `displayctl resolution`):")
+        for choice in DisplayModeControl.sizeChoices(for: target.id) {
+            let marks = [
+                choice.isCurrent ? "← hiện tại" : nil,
+                choice.isHiDPI ? "HiDPI" : nil,
+            ].compactMap { $0 }.joined(separator: ", ")
+            print("  \(choice.label)\t\(Int(choice.refreshRate.rounded()))Hz" + (marks.isEmpty ? "" : "\t(\(marks))"))
+        }
+    }
+}
+
+struct Resolution: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Đổi kích thước màn hình, ví dụ: displayctl resolution 1 1920x1080")
+
+    @Argument(help: "ID hoặc tên màn hình.")
+    var display: String
+
+    @Argument(help: "Kích thước dạng WxH, ví dụ 1920x1080.")
+    var size: String
+
+    func run() throws {
+        let parts = size.lowercased().split(separator: "x").compactMap { Int($0) }
+        guard parts.count == 2 else { throw ValidationError("Kích thước phải có dạng WxH, ví dụ 1920x1080.") }
+        let target = try resolveTarget(display, in: DisplayManager().allDisplays())
+        try DisplayModeControl.setResolution(width: parts[0], height: parts[1], for: target.id)
+        print("Đã đổi \"\(target.name)\" sang \(parts[0])×\(parts[1]). Đổi lại nếu cần: displayctl modes \(target.id)")
+    }
+}
+
+struct Mirror: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Bật/tắt mirror: displayctl mirror <id> --of <id màn chính> | --off")
+
+    @Argument(help: "ID hoặc tên màn hình sẽ đi mirror màn khác.")
+    var display: String
+
+    @Option(name: .long, help: "ID hoặc tên màn hình được mirror theo (master).")
+    var of: String?
+
+    @Flag(name: .long, help: "Thoát chế độ mirror.")
+    var off = false
+
+    func run() throws {
+        let displays = DisplayManager().allDisplays()
+        let target = try resolveTarget(display, in: displays)
+        if off {
+            try MirrorControl.setMirror(target.id, of: nil)
+            print("\"\(target.name)\" đã thoát mirror.")
+        } else if let of {
+            let master = try resolveTarget(of, in: displays)
+            try MirrorControl.setMirror(target.id, of: master.id)
+            print("\"\(target.name)\" đang mirror \"\(master.name)\".")
+        } else {
+            if let master = MirrorControl.master(of: target.id),
+               let info = displays.first(where: { $0.id == master }) {
+                print("\"\(target.name)\" đang mirror \"\(info.name)\".")
+            } else {
+                print("\"\(target.name)\" không mirror màn hình nào. Dùng --of <id> hoặc --off.")
+            }
+        }
+    }
+}
+
+struct Rotate: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Xoay màn hình: displayctl rotate <id> <0|90|180|270>")
+
+    @Argument(help: "ID hoặc tên màn hình.")
+    var display: String
+
+    @Argument(help: "Góc xoay 0/90/180/270. Bỏ trống để đọc góc hiện tại.")
+    var degrees: Int?
+
+    func run() throws {
+        let target = try resolveTarget(display, in: DisplayManager().allDisplays())
+        if let degrees {
+            try RotationControl.setRotation(degrees, for: target.id)
+            print("Đã xoay \"\(target.name)\" sang \(degrees)°.")
+        } else {
+            print("\(target.name): \(RotationControl.rotation(for: target.id))°")
         }
     }
 }
