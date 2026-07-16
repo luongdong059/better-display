@@ -39,7 +39,7 @@ private func printTable(_ displays: [DisplayInfo]) {
         s.count >= width ? s : s + String(repeating: " ", count: width - s.count)
     }
     print(pad("ID", 12) + pad("TÊN", 22) + pad("TRẠNG THÁI", 12)
-        + pad("ĐỘ PHÂN GIẢI", 16) + pad("TẦN SỐ", 9) + pad("LOẠI", 10) + "KEY")
+        + pad("ĐỘ PHÂN GIẢI", 16) + pad("TẦN SỐ", 9) + pad("LOẠI", 10) + pad("DDC", 6) + "KEY")
     for d in displays {
         let status = d.isEnabled ? (d.isMirrored ? "MIRROR" : "ON") : "OFF"
         let main = d.isMain ? " *" : ""
@@ -49,6 +49,7 @@ private func printTable(_ displays: [DisplayInfo]) {
             + pad("\(Int(d.resolution.width))x\(Int(d.resolution.height))", 16)
             + pad(d.refreshRate > 0 ? "\(Int(d.refreshRate.rounded()))Hz" : "-", 9)
             + pad(d.isBuiltin ? "Tích hợp" : "Ngoài", 10)
+            + pad(d.supportsDDC ? "yes" : "no", 6)
             + d.persistentKey)
     }
     if displays.contains(where: \.isMain) {

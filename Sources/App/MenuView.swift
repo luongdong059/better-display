@@ -36,6 +36,14 @@ struct MenuView: View {
                 Spacer()
                 Button("Thoát") { NSApp.terminate(nil) }
             }
+
+            HStack {
+                Text("Design by Dong")
+                Spacer()
+                Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")")
+            }
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
         }
         .padding(14)
         .frame(width: 340)
@@ -84,6 +92,27 @@ private struct DisplayRowView: View {
                 .help(isLocked
                     ? "Không thể tắt màn hình đang hoạt động cuối cùng"
                     : (row.info.isEnabled ? "Tắt màn hình này" : "Bật lại màn hình này"))
+
+            if !row.isGhost {
+                Menu {
+                    Picker("Cách tắt", selection: Binding(
+                        get: { state.preferredStrategies[row.info.persistentKey] },
+                        set: { state.setPreferredStrategy($0, for: row) })) {
+                        Text("Tự động (Disconnect)").tag(StrategyKind?.none)
+                        Text("Disconnect — macOS coi như rút cáp").tag(StrategyKind?.some(.disconnect))
+                        if row.info.supportsDDC {
+                            Text("DDC — tắt nguồn thật (standby)").tag(StrategyKind?.some(.ddc))
+                        }
+                        Text("Gamma — màn đen, vẫn sáng đèn").tag(StrategyKind?.some(.gamma))
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .frame(width: 24)
+                .help("Chọn cách tắt cho màn hình này")
+            }
         }
     }
 }

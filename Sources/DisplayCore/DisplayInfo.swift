@@ -16,6 +16,8 @@ public struct DisplayInfo: Identifiable, Codable, Equatable {
     /// Màn hình có đang active (được vẽ lên) hay không.
     public let isEnabled: Bool
     public let isMirrored: Bool
+    /// Màn hình trả lời được lệnh DDC (Get VCP power mode) hay không.
+    public let supportsDDC: Bool
 
     public init(
         id: CGDirectDisplayID,
@@ -26,7 +28,8 @@ public struct DisplayInfo: Identifiable, Codable, Equatable {
         resolution: CGSize,
         refreshRate: Double,
         isEnabled: Bool,
-        isMirrored: Bool
+        isMirrored: Bool,
+        supportsDDC: Bool = false
     ) {
         self.id = id
         self.persistentKey = persistentKey
@@ -37,5 +40,6 @@ public struct DisplayInfo: Identifiable, Codable, Equatable {
         self.refreshRate = refreshRate
         self.isEnabled = isEnabled
         self.isMirrored = isMirrored
+        self.supportsDDC = supportsDDC
     }
 }

@@ -16,6 +16,8 @@ final class AppState: ObservableObject {
 
     @Published private(set) var rows: [Row] = []
     @Published var lastError: String?
+    /// Strategy ưa thích theo persistentKey (nil = tự động: Disconnect → fallback).
+    @Published private(set) var preferredStrategies: [String: StrategyKind] = [:]
     @Published var launchAtLogin: Bool {
         didSet {
             guard !isSyncingLaunchToggle, launchAtLogin != (SMAppService.mainApp.status == .enabled) else { return }
@@ -27,12 +29,16 @@ final class AppState: ObservableObject {
     private let manager: DisplayManager
     private let monitor = EventMonitor()
     private var isSyncingLaunchToggle = false
+    private static let preferencesKey = "preferredStrategies"
 
     init() {
         let store = StateStore()
         self.store = store
         self.manager = DisplayManager(store: store)
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
+        if let raw = UserDefaults.standard.dictionary(forKey: Self.preferencesKey) as? [String: String] {
+            self.preferredStrategies = raw.compactMapValues(StrategyKind.init(rawValue:))
+        }
         refresh()
         monitor.onChange = { [weak self] in self?.refresh() }
         monitor.start()
@@ -62,12 +68,23 @@ final class AppState: ObservableObject {
 
     func setPower(_ on: Bool, for row: Row) {
         do {
-            try manager.setPower(on, displayID: row.info.id)
+            try manager.setPower(on, displayID: row.info.id,
+                                 preferred: preferredStrategies[row.info.persistentKey])
             lastError = nil
         } catch {
             lastError = error.localizedDescription
         }
         refresh()
+    }
+
+    func setPreferredStrategy(_ kind: StrategyKind?, for row: Row) {
+        if let kind {
+            preferredStrategies[row.info.persistentKey] = kind
+        } else {
+            preferredStrategies.removeValue(forKey: row.info.persistentKey)
+        }
+        UserDefaults.standard.set(
+            preferredStrategies.mapValues(\.rawValue), forKey: Self.preferencesKey)
     }
 
     func restoreAll() {

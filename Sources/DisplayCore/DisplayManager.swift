@@ -9,8 +9,9 @@ public final class DisplayManager {
 
     public init(store: StateStore = StateStore()) {
         self.store = store
-        // Thứ tự fallback mặc định: Disconnect → Mirror → Gamma.
-        self.strategies = [DisconnectStrategy(), MirrorStrategy(), GammaStrategy()]
+        // DDC không nằm trong chuỗi fallback mặc định (chỉ chạy khi chọn tường
+        // minh) vì một số màn hình standby xong không đánh thức được bằng DDC.
+        self.strategies = [DisconnectStrategy(), DDCStrategy(), MirrorStrategy(), GammaStrategy()]
     }
 
     // MARK: - Liệt kê
@@ -18,8 +19,12 @@ public final class DisplayManager {
     public func allDisplays() -> [DisplayInfo] {
         let online = Self.displayIDs(online: true)
         let active = Set(Self.displayIDs(online: false))
+        let ddc = DDCStrategy()
         return online.map { id in
-            DisplayInfo(
+            // Màn hình tắt bằng DDC/gamma vẫn active với CoreGraphics —
+            // record trong StateStore mới là trạng thái "đang tắt" thực tế.
+            let disabledByUs = store.disabledRecord(for: id) != nil
+            return DisplayInfo(
                 id: id,
                 persistentKey: Self.persistentKey(for: id),
                 name: Self.name(for: id),
@@ -27,8 +32,9 @@ public final class DisplayManager {
                 isMain: CGDisplayIsMain(id) != 0,
                 resolution: CGSize(width: CGDisplayPixelsWide(id), height: CGDisplayPixelsHigh(id)),
                 refreshRate: CGDisplayCopyDisplayMode(id)?.refreshRate ?? 0,
-                isEnabled: active.contains(id),
-                isMirrored: CGDisplayIsInMirrorSet(id) != 0
+                isEnabled: active.contains(id) && !disabledByUs,
+                isMirrored: CGDisplayIsInMirrorSet(id) != 0,
+                supportsDDC: ddc.probeSupport(for: id)
             )
         }
     }
@@ -141,7 +147,7 @@ public final class DisplayManager {
     }
 
     private func chain(preferred: StrategyKind?) throws -> [PowerControlStrategy] {
-        guard let preferred else { return strategies }
+        guard let preferred else { return strategies.filter { $0.kind != .ddc } }
         guard let strategy = strategies.first(where: { $0.kind == preferred }) else {
             throw PowerControlError.strategyUnavailable(preferred, reason: "chưa được triển khai")
         }
