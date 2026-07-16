@@ -6,5 +6,13 @@
         <description>Bản cập nhật của Better Display</description>
         <language>vi</language>
         <!-- ITEMS -->
+        <item>
+            <title>Phiên bản 0.5.0</title>
+            <description><![CDATA[Bản đầu tiên có auto-update (Sparkle), universal binary cho cả Intel và Apple Silicon, điều khiển nâng cao từng màn hình: độ sáng, kích thước, xoay, mirror.]]></description>
+            <pubDate>Thu, 16 Jul 2026 09:55:25 +0700</pubDate>
+            <sparkle:version>0.5.0</sparkle:version>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/luongdong059/better-display/releases/download/v0.5.0/Better-Display-0.5.0.zip" sparkle:edSignature="FN+/t4yuYH0YWirDA5xevA9i74EgnZXX7ga5M1PdIE26YbpRQ9kET+KMBUQhp4JLTsq//jGyHA5haJdESqS0Ag==" length="1539465" type="application/octet-stream"/>
+        </item>
     </channel>
 </rss>

@@ -22,14 +22,6 @@
 	<string>0.5.0</string>
 	<key>CFBundleVersion</key>
 	<string>0.5.0</string>
-	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/luongdong059/better-display/main/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>L02kiCHZBmWNzfLNH0Slajz1dj1hy3nibyvFhUXJL4g=</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<key>SUScheduledCheckInterval</key>
-	<integer>86400</integer>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
@@ -38,5 +30,13 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/luongdong059/better-display/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>L02kiCHZBmWNzfLNH0Slajz1dj1hy3nibyvFhUXJL4g=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>
