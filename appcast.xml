@@ -7,6 +7,14 @@
         <language>vi</language>
         <!-- ITEMS -->
         <item>
+            <title>Phiên bản 0.6.2</title>
+            <description><![CDATA[Sửa lỗi sau khi tắt máy mở lại: màn hình đã tắt bằng disconnect hiện thành màn hình "ma" và bật lại báo mã lỗi 1001. App giờ tự dọn trạng thái lỗi thời của phiên boot trước.]]></description>
+            <pubDate>Fri, 17 Jul 2026 08:24:09 +0700</pubDate>
+            <sparkle:version>0.6.2</sparkle:version>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/luongdong059/better-display/releases/download/v0.6.2/Better-Display-0.6.2.zip" sparkle:edSignature="ehrbm0MAfx4cUEzFxa0PdEX6Lc97PvU2O8ZW/Qnw+ru9sPB4ZUZ4n1Ao71ZeAjwx4JGTZF5cTz+NnHn24qaFBQ==" length="1577417" type="application/octet-stream"/>
+        </item>
+        <item>
             <title>Phiên bản 0.6.1</title>
             <description><![CDATA[Icon menu bar dùng logo của app thay cho biểu tượng hệ thống.]]></description>
             <pubDate>Thu, 16 Jul 2026 11:44:20 +0700</pubDate>
