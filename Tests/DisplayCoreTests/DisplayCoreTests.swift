@@ -75,6 +75,83 @@ final class DisplayCoreTests: XCTestCase {
         XCTAssertNil(StateStore(directory: dir).disabledRecord(for: 42))
     }
 
+    // MARK: - Reconcile (dọn record lỗi thời sau reboot / cắm lại cáp)
+
+    private func makeRecord(
+        id: CGDirectDisplayID = 1, key: String = "v1-m2-s3",
+        strategy: StrategyKind, date: Date = Date()
+    ) -> DisabledRecord {
+        DisabledRecord(displayID: id, persistentKey: key, strategy: strategy, date: date, name: "Test")
+    }
+
+    func testReconcileRemovesDisconnectRecordWhenDisplayBackOnline() {
+        // Reboot xong macOS tự bật lại màn hình (ID mới 5) — record hết hiệu lực.
+        let record = makeRecord(strategy: .disconnect)
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(
+                for: record, onlineByKey: ["v1-m2-s3": 5], bootTime: .distantPast),
+            .remove)
+    }
+
+    func testReconcileRemovesDisconnectRecordFromPreviousBoot() {
+        // Màn hình chưa cắm lại nhưng record thuộc phiên boot trước —
+        // disconnect không sống qua reboot nên record là rác.
+        let record = makeRecord(strategy: .disconnect, date: Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(
+                for: record, onlineByKey: [:], bootTime: Date(timeIntervalSince1970: 200)),
+            .remove)
+    }
+
+    func testReconcileKeepsDisconnectRecordFromCurrentBoot() {
+        // Màn hình vừa bị disconnect trong phiên này (đã offline) — phải giữ
+        // record để còn đường bật lại.
+        let record = makeRecord(strategy: .disconnect, date: Date(timeIntervalSince1970: 300))
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(
+                for: record, onlineByKey: [:], bootTime: Date(timeIntervalSince1970: 200)),
+            .keep)
+    }
+
+    func testReconcileKeepsDisconnectRecordWhenBootTimeUnknown() {
+        // Không đọc được kern.boottime → thận trọng, không xóa theo thời gian.
+        let record = makeRecord(strategy: .disconnect, date: Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(for: record, onlineByKey: [:], bootTime: nil),
+            .keep)
+    }
+
+    func testReconcileRemovesGammaRecordFromPreviousBoot() {
+        let record = makeRecord(strategy: .gamma, date: Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(
+                for: record, onlineByKey: ["v1-m2-s3": 1], bootTime: Date(timeIntervalSince1970: 200)),
+            .remove)
+    }
+
+    func testReconcileRebindsRecordWhenDisplayIDChanged() {
+        // DDC standby nằm ở phần cứng màn hình — record vẫn đúng sau reboot,
+        // chỉ cần trỏ sang ID mới của phiên này.
+        let record = makeRecord(id: 1, strategy: .ddc, date: Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(
+                for: record, onlineByKey: ["v1-m2-s3": 9], bootTime: Date(timeIntervalSince1970: 200)),
+            .rebind(to: 9))
+    }
+
+    func testReconcileKeepsDdcRecordWhenIDUnchanged() {
+        let record = makeRecord(id: 1, strategy: .ddc, date: Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(
+            DisplayManager.reconcileAction(
+                for: record, onlineByKey: ["v1-m2-s3": 1], bootTime: Date(timeIntervalSince1970: 200)),
+            .keep)
+    }
+
+    func testBootTimeIsInThePast() throws {
+        let bootTime = try XCTUnwrap(DisplayManager.bootTime)
+        XCTAssertLessThan(bootTime, Date())
+    }
+
     func testStateStoreOverwritesSameDisplay() {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("displayctl-tests-\(UUID().uuidString)")
